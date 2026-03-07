@@ -1,31 +1,195 @@
-1) Comprehensive Asset Portfolio Tracking:
+# Financial Portfolio Tracker
 
-Track all major investment categories in one place — Provident Fund (PF), Fixed Deposits, Bonds, Debt & Equity Mutual Funds, Stocks (NSE/BSE), Gold Mutual Funds, Sovereign Gold Bonds (SGB), and Real Estate properties. Each asset shows invested amount, current value, and gain/loss in real time.
+A **secure, offline-first personal finance application** designed to help individuals track their complete financial portfolio in one place.
+The application consolidates **assets, liabilities, insurance records, and contacts**, providing a clear view of overall **net worth and financial health**.
 
-2) Liabilities & Loan Management:
+---
 
-Record and monitor all outstanding loans — home loans, personal loans, gold loans, and MF-backed loans — with details like principal, EMI, interest rate, and outstanding balance, giving a true picture of net worth after liabilities.
+## Key Features
 
-3) Net Worth Dashboard:
+### 1. Comprehensive Asset Portfolio Tracking
 
-The home dashboard aggregates all assets and liabilities into a single net worth figure displayed in Indian format (K / L / Cr), with KPI cards per category and visual pie/bar charts showing asset allocation and growth over time.
+Track all major investment categories in one place:
 
-4) Records — Investments, Insurance & Contacts:
+* Provident Fund (PF)
+* Fixed Deposits
+* Bonds
+* Debt & Equity Mutual Funds
+* Stocks (NSE/BSE)
+* Gold Mutual Funds
+* Sovereign Gold Bonds (SGB)
+* Real Estate properties
 
-The Records section has three dedicated tabs: Investments (log SIP transactions, lump-sum entries, and platform details), Protection & Insurance (store policy numbers, premiums, cover amounts, and renewal dates), and Contacts (save advisor, broker, and bank contact details). All records can be exported to a formatted Excel file.
+Each asset displays:
 
-5) Excel Export with Professional Formatting:
+* Invested Amount
+* Current Value
+* Gain / Loss in real-time
 
-Every Records tab has a one-click Export to Excel button that generates a colour-formatted spreadsheet with a navy header row, alternating pale-blue/white data rows, and black readable text — ready to share or archive.
+This provides a unified view of your entire investment portfolio.
 
-6) Bulk Import via CSV / Excel:
+---
 
-Supported asset types (Mutual Funds, Stocks, etc.) allow bulk data import from CSV or Excel files through a guided Import Wizard, eliminating manual entry for large portfolios.
+### 2. Liabilities & Loan Management
 
-7) Reports & Portfolio Charts:
+Record and monitor all outstanding loans, including:
 
-The Reports section provides a tabular summary across all asset classes and a dedicated Charts page with matplotlib-powered visualisations — asset allocation donut chart, category-wise bar charts, and historical net-worth trend — all rendered locally without any internet connection.
+* Home Loans
+* Personal Loans
+* Gold Loans
+* Mutual Fund-backed Loans
 
-8) Secure, Fully Offline & Portable:
+For each liability, you can track:
 
-All data is stored in a local SQLite database with bcrypt-hashed passwords and AES-256-GCM encryption for sensitive fields (account numbers, folios). The app requires no internet connection, no cloud account, and runs as a portable Windows folder — simply extract the ZIP on any Windows laptop and double-click to run.
+* Principal Amount
+* EMI
+* Interest Rate
+* Outstanding Balance
+
+This allows you to accurately calculate **net worth after liabilities**.
+
+---
+
+### 3. Net Worth Dashboard
+
+The application dashboard aggregates all assets and liabilities into a single **net worth figure**.
+
+Features include:
+
+* Indian number formatting (K / L / Cr)
+* KPI cards for each asset category
+* Pie charts showing asset allocation
+* Bar charts displaying portfolio growth trends
+
+This provides an **instant snapshot of financial health**.
+
+---
+
+### 4. Records — Investments, Insurance & Contacts
+
+The **Records section** includes three dedicated tabs:
+
+#### Investments
+
+Log investment activity including:
+
+* SIP transactions
+* Lump-sum investments
+* Investment platform details
+
+#### Protection & Insurance
+
+Store and manage insurance details such as:
+
+* Policy Numbers
+* Premium Amounts
+* Coverage Value
+* Renewal Dates
+
+#### Contacts
+
+Maintain a directory of financial contacts:
+
+* Advisors
+* Brokers
+* Bank representatives
+
+All records can be **exported to a structured Excel file**.
+
+---
+
+### 5. Excel Export with Professional Formatting
+
+Every Records tab supports **one-click Excel export**.
+
+Generated spreadsheets include:
+
+* Navy-colored header row
+* Alternating pale-blue and white data rows
+* Clear, readable formatting
+* Ready-to-share professional reports
+
+---
+
+### 6. Bulk Import via CSV / Excel
+
+Supported asset categories such as **Mutual Funds and Stocks** allow **bulk data import**.
+
+Features include:
+
+* Import from CSV or Excel files
+* Guided Import Wizard
+* Fast portfolio onboarding for large datasets
+
+This eliminates manual entry for extensive portfolios.
+
+---
+
+### 7. Reports & Portfolio Charts
+
+The **Reports section** provides analytical insights into your portfolio.
+
+Capabilities include:
+
+* Tabular summary across all asset classes
+* Asset allocation donut chart
+* Category-wise bar charts
+* Historical net-worth trend
+
+Charts are generated using **Matplotlib** and rendered locally without internet connectivity.
+
+---
+
+### 8. Secure, Fully Offline & Portable
+
+The application is designed with **security and privacy as top priorities**.
+
+Security features include:
+
+* Local **SQLite database**
+* **bcrypt-hashed passwords**
+* **AES-256-GCM encryption** for sensitive fields (account numbers, folios)
+
+Operational advantages:
+
+* No internet connection required
+* No cloud account needed
+* Fully **offline and portable**
+
+To run the application:
+
+1. Extract the ZIP file on any Windows laptop
+2. Open the application folder
+3. Double-click the launcher to start
+
+Your financial data **remains fully under your control**.
+
+---
+
+## Technology Stack
+
+* Python
+* SQLite
+* Matplotlib
+* Pandas
+* bcrypt
+* AES-256-GCM encryption
+
+---
+
+## Use Cases
+
+This tool is ideal for:
+
+* Individual investors managing diversified portfolios
+* Financial planners tracking client portfolios offline
+* Users who prefer **privacy-first financial management**
+
+---
+
+## Disclaimer
+
+This application is intended for **personal financial tracking and informational purposes only**.
+It does not provide investment advice or financial recommendations.
+
+---
