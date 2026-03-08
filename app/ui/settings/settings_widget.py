@@ -13,14 +13,16 @@ from PyQt6.QtGui import QFont
 
 from app.models import settings as settings_model
 from app.models import auth as auth_model
-from app.core.constants import DB_PATH, BACKUP_DIR, SECURITY_QUESTIONS, MAX_PASSWORD_LENGTH
+from app.core.constants import (
+    DB_PATH, BACKUP_DIR, SECURITY_QUESTIONS, MAX_PASSWORD_LENGTH,
+    CURRENCIES, TEMPLATES_DIR,
+)
 from app.core import security as sec
 from app.ui.widgets import (
     make_amount_spin, make_rate_spin, title_label, separator,
     field_label, section_label, info_dialog, error_dialog,
 )
 from app.services import import_service
-from app.core.constants import TEMPLATES_DIR
 
 
 class SettingsWidget(QWidget):
@@ -85,16 +87,42 @@ class SettingsWidget(QWidget):
         form = QFormLayout()
         form.setSpacing(10)
 
-        self.usd_rate_spin = make_amount_spin(min_val=1, max_val=1000, prefix="₹ ")
-        self.usd_rate_spin.setDecimals(2)
-        self.usd_rate_spin.setValue(settings_model.get_usd_rate())
-        form.addRow("USD to INR Rate (1 USD = ):", self.usd_rate_spin)
+        # ── Currency selector ─────────────────────────────────────────────────
+        self.currency_combo = QComboBox()
+        self.currency_combo.setMinimumHeight(36)
+        saved_code = settings_model.get_currency()
+        saved_idx  = 0
+        for i, (code, meta) in enumerate(CURRENCIES.items()):
+            self.currency_combo.addItem(
+                f"{code}  —  {meta['name']}  ({meta['symbol']})", userData=code
+            )
+            if code == saved_code:
+                saved_idx = i
+        self.currency_combo.setCurrentIndex(saved_idx)
+        form.addRow("Display Currency:", self.currency_combo)
 
-        btn_save_rate = QPushButton("Save Exchange Rate")
+        # Rate field — label and value update when currency changes
+        self._rate_lbl = QLabel(f"1 {saved_code} = ₹")
+        self.currency_rate_spin = make_amount_spin(min_val=0.001, max_val=1e6, prefix="₹ ")
+        self.currency_rate_spin.setDecimals(4)
+        self.currency_rate_spin.setValue(settings_model.get_currency_rate(saved_code))
+        form.addRow(self._rate_lbl, self.currency_rate_spin)
+
+        hint = QLabel("Enter the current market rate manually (no internet used).")
+        hint.setObjectName("hintLabel")
+        form.addRow("", hint)
+
+        btn_save_rate = QPushButton("Save Currency & Rate")
         btn_save_rate.setObjectName("secondaryButton")
-        btn_save_rate.clicked.connect(self._save_usd_rate)
+        btn_save_rate.clicked.connect(self._save_currency_rate)
         form.addRow("", btn_save_rate)
 
+        # Wire up combo → rate field update
+        self.currency_combo.currentIndexChanged.connect(self._on_currency_changed)
+
+        form.addRow("", separator())
+
+        # ── Gold price ────────────────────────────────────────────────────────
         self.gold_spin = make_amount_spin(min_val=1, max_val=1e7)
         self.gold_spin.setValue(settings_model.get_gold_price())
         self.gold_spin.setSuffix(" / gram")
@@ -173,13 +201,35 @@ class SettingsWidget(QWidget):
 
     # ── Refresh ────────────────────────────────────────────────────────────────
     def refresh(self):
-        self.usd_rate_spin.setValue(settings_model.get_usd_rate())
+        code = settings_model.get_currency()
+        # Sync combo to saved currency
+        for i in range(self.currency_combo.count()):
+            if self.currency_combo.itemData(i) == code:
+                self.currency_combo.setCurrentIndex(i)
+                break
+        self.currency_rate_spin.setValue(settings_model.get_currency_rate(code))
         self.gold_spin.setValue(settings_model.get_gold_price())
 
     # ── Handlers ───────────────────────────────────────────────────────────────
-    def _save_usd_rate(self):
-        settings_model.set_usd_rate(self.usd_rate_spin.value())
-        info_dialog(self, "Saved", "Exchange rate updated.")
+    def _on_currency_changed(self, _index: int):
+        """When user picks a different currency, load its saved rate."""
+        code = self.currency_combo.currentData()
+        if not code:
+            return
+        self._rate_lbl.setText(f"1 {code} = ₹")
+        self.currency_rate_spin.setValue(settings_model.get_currency_rate(code))
+
+    def _save_currency_rate(self):
+        code = self.currency_combo.currentData()
+        rate = self.currency_rate_spin.value()
+        settings_model.set_currency(code)
+        settings_model.set_currency_rate(code, rate)
+        meta = CURRENCIES.get(code, {})
+        info_dialog(
+            self, "Saved",
+            f"Display currency set to {code} — {meta.get('name','')}.\n"
+            f"Rate: 1 {code} = ₹{rate:,.4f}"
+        )
 
     def _save_gold_price(self):
         settings_model.set_gold_price(self.gold_spin.value())

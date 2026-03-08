@@ -41,6 +41,8 @@ class MainWindow(QMainWindow):
         # ── Deferred widget imports (inside method to isolate import errors) ──
         from app.ui.dashboard import DashboardWidget
         from app.ui.debt.pf_widget import PFWidget
+        from app.ui.debt.ppf_widget import PPFWidget
+        from app.ui.debt.nps_widget import NPSWidget
         from app.ui.debt.fd_widget import FDWidget
         from app.ui.debt.bonds_widget import BondsWidget
         from app.ui.debt.debt_mf_widget import DebtMFWidget
@@ -116,6 +118,8 @@ class MainWindow(QMainWindow):
 
         _safe("dashboard",   DashboardWidget)
         _safe("pf",          PFWidget)
+        _safe("ppf",         PPFWidget)
+        _safe("nps",         NPSWidget)
         _safe("fd",          FDWidget)
         _safe("bonds",       BondsWidget)
         _safe("debt_mf",     DebtMFWidget)
@@ -172,6 +176,8 @@ class MainWindow(QMainWindow):
 
         debt = add_item(assets, "  Debt")
         add_item(debt, "    Provident Fund (PF)", "pf")
+        add_item(debt, "    PPF",                 "ppf")
+        add_item(debt, "    NPS",                 "nps")
         add_item(debt, "    Fixed Deposits",      "fd")
         add_item(debt, "    Bonds",               "bonds")
         add_item(debt, "    Debt Mutual Funds",   "debt_mf")

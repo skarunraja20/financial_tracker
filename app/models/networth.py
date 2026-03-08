@@ -16,18 +16,20 @@ def save_snapshot(data: dict) -> int:
         cur = conn.execute(
             """INSERT INTO networth_snapshots (
                 snapshot_date, snapshot_type,
-                total_pf, total_fd, total_bonds, total_debt_mf,
+                total_pf, total_ppf, total_nps,
+                total_fd, total_bonds, total_debt_mf,
                 total_equity_mf, total_stocks, total_gold_mf, total_sgb, total_real_estate,
                 total_home_loans, total_personal_loans, total_gold_loans, total_mf_loans,
                 total_debt_assets, total_equity_assets, total_gold_assets,
                 gross_assets, total_liabilities, net_worth,
                 usd_to_inr_rate, net_worth_usd, gold_price_per_gram,
                 notes, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 data.get("snapshot_date", date.today().isoformat()),
                 data.get("snapshot_type", "manual"),
-                data.get("total_pf", 0), data.get("total_fd", 0),
+                data.get("total_pf", 0), data.get("total_ppf", 0), data.get("total_nps", 0),
+                data.get("total_fd", 0),
                 data.get("total_bonds", 0), data.get("total_debt_mf", 0),
                 data.get("total_equity_mf", 0), data.get("total_stocks", 0),
                 data.get("total_gold_mf", 0), data.get("total_sgb", 0),
@@ -80,7 +82,8 @@ def update_snapshot(snapshot_id: int, data: dict) -> None:
     try:
         conn.execute(
             """UPDATE networth_snapshots SET
-                total_pf=?, total_fd=?, total_bonds=?, total_debt_mf=?,
+                total_pf=?, total_ppf=?, total_nps=?,
+                total_fd=?, total_bonds=?, total_debt_mf=?,
                 total_equity_mf=?, total_stocks=?, total_gold_mf=?, total_sgb=?, total_real_estate=?,
                 total_home_loans=?, total_personal_loans=?, total_gold_loans=?, total_mf_loans=?,
                 total_debt_assets=?, total_equity_assets=?, total_gold_assets=?,
@@ -88,7 +91,8 @@ def update_snapshot(snapshot_id: int, data: dict) -> None:
                 usd_to_inr_rate=?, net_worth_usd=?, gold_price_per_gram=?, notes=?
             WHERE id=?""",
             (
-                data.get("total_pf", 0), data.get("total_fd", 0),
+                data.get("total_pf", 0), data.get("total_ppf", 0), data.get("total_nps", 0),
+                data.get("total_fd", 0),
                 data.get("total_bonds", 0), data.get("total_debt_mf", 0),
                 data.get("total_equity_mf", 0), data.get("total_stocks", 0),
                 data.get("total_gold_mf", 0), data.get("total_sgb", 0),

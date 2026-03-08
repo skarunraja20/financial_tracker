@@ -24,9 +24,22 @@ def initialize_database() -> None:
     conn = get_connection()
     try:
         _create_tables(conn)
+        _apply_migrations(conn)
         conn.commit()
     finally:
         conn.close()
+
+
+def _apply_migrations(conn: sqlite3.Connection) -> None:
+    """Apply incremental schema changes for existing databases."""
+    # Add PPF and NPS columns to networth_snapshots (added in v2)
+    for col, default in [("total_ppf", "0"), ("total_nps", "0")]:
+        try:
+            conn.execute(
+                f"ALTER TABLE networth_snapshots ADD COLUMN {col} REAL NOT NULL DEFAULT {default}"
+            )
+        except Exception:
+            pass  # Column already exists — safe to ignore
 
 
 def is_first_run() -> bool:
@@ -74,6 +87,36 @@ def _create_tables(conn: sqlite3.Connection) -> None:
         as_of_date      TEXT NOT NULL,
         notes           TEXT,
         updated_at      TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS ppf_account (
+        id                  INTEGER PRIMARY KEY CHECK (id = 1),
+        account_number      TEXT,
+        bank_name           TEXT,
+        opening_date        TEXT,
+        maturity_date       TEXT,
+        current_balance     REAL NOT NULL DEFAULT 0.0,
+        annual_contribution REAL NOT NULL DEFAULT 0.0,
+        interest_rate       REAL NOT NULL DEFAULT 7.1,
+        as_of_date          TEXT NOT NULL,
+        notes               TEXT,
+        updated_at          TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS nps_account (
+        id                  INTEGER PRIMARY KEY CHECK (id = 1),
+        pran_number         TEXT,
+        pfm_name            TEXT,
+        tier1_corpus        REAL NOT NULL DEFAULT 0.0,
+        tier1_contributions REAL NOT NULL DEFAULT 0.0,
+        tier2_corpus        REAL NOT NULL DEFAULT 0.0,
+        tier2_contributions REAL NOT NULL DEFAULT 0.0,
+        equity_pct          REAL NOT NULL DEFAULT 0.0,
+        govt_pct            REAL NOT NULL DEFAULT 0.0,
+        corp_pct            REAL NOT NULL DEFAULT 0.0,
+        as_of_date          TEXT NOT NULL,
+        notes               TEXT,
+        updated_at          TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS fixed_deposits (
@@ -208,6 +251,8 @@ def _create_tables(conn: sqlite3.Connection) -> None:
         snapshot_date       TEXT NOT NULL,
         snapshot_type       TEXT NOT NULL DEFAULT 'manual',
         total_pf            REAL NOT NULL DEFAULT 0,
+        total_ppf           REAL NOT NULL DEFAULT 0,
+        total_nps           REAL NOT NULL DEFAULT 0,
         total_fd            REAL NOT NULL DEFAULT 0,
         total_bonds         REAL NOT NULL DEFAULT 0,
         total_debt_mf       REAL NOT NULL DEFAULT 0,

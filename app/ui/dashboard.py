@@ -18,7 +18,7 @@ from matplotlib.figure import Figure
 import matplotlib.ticker
 
 from app.services import networth_service as nw_svc
-from app.services.formatters import format_inr, format_usd
+from app.services.formatters import format_inr, format_usd, format_foreign
 from app.models import settings as settings_model
 from app.ui.widgets import KPICard, title_label, separator
 from app.core.constants import ASSET_COLORS, COLOR_LIABILITY, COLOR_NET_WORTH
@@ -66,7 +66,7 @@ class DashboardWidget(QWidget):
         nw_title.setObjectName("heroLabel")
         self.hero_value = QLabel("₹0")
         self.hero_value.setObjectName("heroValue")
-        self.hero_usd = QLabel("$0 USD")
+        self.hero_usd = QLabel("$0 equivalent")
         self.hero_usd.setObjectName("heroSub")
 
         nw_col.addWidget(nw_title)
@@ -173,11 +173,15 @@ class DashboardWidget(QWidget):
     def refresh(self):
         self._values = nw_svc.calculate_current_values()
         v = self._values
-        usd_rate = v["usd_to_inr_rate"]
+        c_code   = v.get("currency_code",   "USD")
+        c_symbol = v.get("currency_symbol", "$")
+        c_rate   = v.get("currency_rate",   v.get("usd_to_inr_rate", 84.0))
 
         # Hero card
         self.hero_value.setText(format_inr(v["net_worth"]))
-        self.hero_usd.setText(f"{format_usd(v['net_worth'], usd_rate)}  USD equivalent")
+        self.hero_usd.setText(
+            f"{format_foreign(v['net_worth'], c_rate, c_symbol)}  {c_code} equivalent"
+        )
         self.mini_gross.setText(format_inr(v["gross_assets"]))
         self.mini_liab.setText(format_inr(v["total_liabilities"]))
 
@@ -327,7 +331,8 @@ class SnapshotPreviewDialog(QDialog):
             f"Total Liabilities: {format_inr(v['total_liabilities'])}\n"
             f"Net Worth:         {format_inr(v['net_worth'])}\n"
             f"Gold Price/gram:   ₹{v['gold_price_per_gram']:,.0f}\n"
-            f"USD Rate:          ₹{v['usd_to_inr_rate']:.2f}\n"
+            f"{v.get('currency_code','USD')} Rate:      "
+            f"₹{v.get('currency_rate', v.get('usd_to_inr_rate', 84.0)):.2f}\n"
         )
         lbl = QLabel(text)
         lbl.setFont(QFont("Consolas", 10))

@@ -38,6 +38,86 @@ def save_pf(total_balance: float, as_of_date: str, account_number: str = "", not
         conn.close()
 
 
+# ── PPF ───────────────────────────────────────────────────────────────────────
+
+def get_ppf() -> dict | None:
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM ppf_account WHERE id = 1").fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def save_ppf(
+    current_balance: float,
+    as_of_date: str,
+    account_number: str = "",
+    bank_name: str = "",
+    opening_date: str = "",
+    maturity_date: str = "",
+    annual_contribution: float = 0.0,
+    interest_rate: float = 7.1,
+    notes: str = "",
+) -> None:
+    now = _now()
+    conn = get_connection()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO ppf_account "
+            "(id, account_number, bank_name, opening_date, maturity_date, "
+            "current_balance, annual_contribution, interest_rate, as_of_date, notes, updated_at) "
+            "VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (account_number, bank_name, opening_date, maturity_date,
+             current_balance, annual_contribution, interest_rate, as_of_date, notes, now),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# ── NPS ───────────────────────────────────────────────────────────────────────
+
+def get_nps() -> dict | None:
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM nps_account WHERE id = 1").fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def save_nps(
+    tier1_corpus: float,
+    as_of_date: str,
+    pran_number: str = "",
+    pfm_name: str = "",
+    tier1_contributions: float = 0.0,
+    tier2_corpus: float = 0.0,
+    tier2_contributions: float = 0.0,
+    equity_pct: float = 0.0,
+    govt_pct: float = 0.0,
+    corp_pct: float = 0.0,
+    notes: str = "",
+) -> None:
+    now = _now()
+    conn = get_connection()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO nps_account "
+            "(id, pran_number, pfm_name, tier1_corpus, tier1_contributions, "
+            "tier2_corpus, tier2_contributions, equity_pct, govt_pct, corp_pct, "
+            "as_of_date, notes, updated_at) "
+            "VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (pran_number, pfm_name, tier1_corpus, tier1_contributions,
+             tier2_corpus, tier2_contributions, equity_pct, govt_pct, corp_pct,
+             as_of_date, notes, now),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # ── Fixed Deposits ─────────────────────────────────────────────────────────────
 
 def get_all_fds(active_only: bool = True) -> list[dict]:

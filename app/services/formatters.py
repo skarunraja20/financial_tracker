@@ -47,16 +47,25 @@ def _indian_comma(amount: float) -> str:
     return result
 
 
-def format_usd(amount_inr: float, usd_rate: float) -> str:
-    """Format INR amount as USD equivalent."""
-    if usd_rate <= 0:
+def format_foreign(amount_inr: float, rate: float, symbol: str) -> str:
+    """
+    Format an INR amount as a foreign-currency equivalent.
+    rate   = INR per 1 unit of the foreign currency (e.g. 84 for USD).
+    symbol = currency symbol to prefix (e.g. '$', '€', '£').
+    """
+    if rate <= 0:
         return ""
-    usd = amount_inr / usd_rate
-    if abs(usd) >= 1e6:
-        return f"~${usd / 1e6:.2f}M"
-    elif abs(usd) >= 1e3:
-        return f"~${usd / 1e3:.1f}K"
-    return f"~${usd:,.0f}"
+    val = amount_inr / rate
+    if abs(val) >= 1e6:
+        return f"~{symbol}{val / 1e6:.2f}M"
+    elif abs(val) >= 1e3:
+        return f"~{symbol}{val / 1e3:.1f}K"
+    return f"~{symbol}{val:,.0f}"
+
+
+def format_usd(amount_inr: float, usd_rate: float) -> str:
+    """Format INR amount as USD equivalent (backward-compat wrapper)."""
+    return format_foreign(amount_inr, usd_rate, "$")
 
 
 def format_percent(value: float, total: float) -> str:

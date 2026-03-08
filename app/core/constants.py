@@ -115,18 +115,37 @@ SECURITY_QUESTIONS = [
 ]
 
 # ── Settings keys ─────────────────────────────────────────────────────────────
-SETTING_USD_RATE = "usd_to_inr_rate"
+SETTING_USD_RATE   = "usd_to_inr_rate"          # kept for backward compat
 SETTING_GOLD_PRICE = "gold_price_per_gram_inr"
-SETTING_THEME = "app_theme"
+SETTING_THEME      = "app_theme"
 SETTING_GOLD_UPDATED = "gold_price_updated_at"
+SETTING_CURRENCY   = "display_currency"          # selected foreign currency code
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
-DEFAULT_USD_RATE = 84.0
+DEFAULT_USD_RATE   = 84.0
 DEFAULT_GOLD_PRICE = 6500.0   # INR per gram (approximate, user must update)
 DEFAULT_SGB_COUPON = 2.5
+DEFAULT_CURRENCY   = "USD"
+
+# ── Supported display currencies (all rates = INR per 1 unit of that currency)
+# Format: code → {name, symbol, default_rate}
+CURRENCIES = {
+    "USD": {"name": "US Dollar",          "symbol": "$",    "default_rate": 84.0},
+    "EUR": {"name": "Euro",               "symbol": "€",    "default_rate": 91.0},
+    "GBP": {"name": "British Pound",      "symbol": "£",    "default_rate": 106.0},
+    "JPY": {"name": "Japanese Yen",       "symbol": "¥",    "default_rate": 0.56},
+    "CAD": {"name": "Canadian Dollar",    "symbol": "CA$",  "default_rate": 62.0},
+    "AUD": {"name": "Australian Dollar",  "symbol": "A$",   "default_rate": 54.0},
+    "CHF": {"name": "Swiss Franc",        "symbol": "Fr",   "default_rate": 95.0},
+    "SGD": {"name": "Singapore Dollar",   "symbol": "S$",   "default_rate": 63.0},
+    "AED": {"name": "UAE Dirham",         "symbol": "AED",  "default_rate": 23.0},
+    "SAR": {"name": "Saudi Riyal",        "symbol": "SAR",  "default_rate": 22.0},
+}
 
 # ── UI Colors (used in charts and badges) ─────────────────────────────────────
 COLOR_PF        = "#3b82f6"   # blue-500
+COLOR_PPF       = "#2563eb"   # blue-600
+COLOR_NPS       = "#1d4ed8"   # blue-700
 COLOR_FD        = "#60a5fa"   # blue-400
 COLOR_BONDS     = "#93c5fd"   # blue-300
 COLOR_DEBT_MF   = "#bfdbfe"   # blue-200
@@ -140,6 +159,8 @@ COLOR_NET_WORTH = "#14b8a6"   # teal-500
 
 ASSET_COLORS = {
     "PF": COLOR_PF,
+    "PPF": COLOR_PPF,
+    "NPS": COLOR_NPS,
     "Fixed Deposits": COLOR_FD,
     "Bonds": COLOR_BONDS,
     "Debt MF": COLOR_DEBT_MF,

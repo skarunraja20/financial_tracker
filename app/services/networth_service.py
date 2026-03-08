@@ -20,12 +20,22 @@ def calculate_current_values() -> dict:
     Compute live current values for all asset and liability categories.
     Returns a structured dict suitable for dashboard display and snapshot creation.
     """
-    gold_price = settings_model.get_gold_price()
-    usd_rate = settings_model.get_usd_rate()
+    gold_price    = settings_model.get_gold_price()
+    currency_info = settings_model.get_currency_info()   # {code, name, symbol, rate}
 
     # ── PF ────────────────────────────────────────────────────────────────────
     pf = debt_model.get_pf()
     total_pf = pf["total_balance"] if pf else 0.0
+
+    # ── PPF ───────────────────────────────────────────────────────────────────
+    ppf = debt_model.get_ppf()
+    total_ppf = ppf["current_balance"] if ppf else 0.0
+
+    # ── NPS ───────────────────────────────────────────────────────────────────
+    nps = debt_model.get_nps()
+    total_nps = (
+        (nps.get("tier1_corpus", 0.0) + nps.get("tier2_corpus", 0.0)) if nps else 0.0
+    )
 
     # ── Fixed Deposits ────────────────────────────────────────────────────────
     fds = debt_model.get_all_fds()
@@ -80,7 +90,7 @@ def calculate_current_values() -> dict:
     total_real_estate = sum(p["current_value"] for p in properties)
 
     # ── Category aggregates ───────────────────────────────────────────────────
-    total_debt_assets = total_pf + total_fd + total_bonds + total_debt_mf
+    total_debt_assets = total_pf + total_ppf + total_nps + total_fd + total_bonds + total_debt_mf
     total_equity_assets = total_equity_mf + total_stocks
     total_gold_assets = total_gold_mf + total_sgb
     gross_assets = total_debt_assets + total_equity_assets + total_gold_assets + total_real_estate
@@ -95,11 +105,14 @@ def calculate_current_values() -> dict:
 
     # ── Net Worth ─────────────────────────────────────────────────────────────
     net_worth = gross_assets - total_liabilities
-    net_worth_usd = net_worth / usd_rate if usd_rate > 0 else 0.0
+    c_rate = currency_info["rate"]
+    net_worth_foreign = net_worth / c_rate if c_rate > 0 else 0.0
 
     return {
         # Individual asset values
         "total_pf": total_pf,
+        "total_ppf": total_ppf,
+        "total_nps": total_nps,
         "total_fd": total_fd,
         "total_bonds": total_bonds,
         "total_debt_mf": total_debt_mf,
@@ -121,9 +134,14 @@ def calculate_current_values() -> dict:
         "total_liabilities": total_liabilities,
         # Net
         "net_worth": net_worth,
-        "net_worth_usd": net_worth_usd,
+        "net_worth_foreign": net_worth_foreign,   # in selected foreign currency
+        # Currency meta (replaces old usd_to_inr_rate / net_worth_usd keys)
+        "currency_code":   currency_info["code"],
+        "currency_symbol": currency_info["symbol"],
+        "currency_rate":   currency_info["rate"],
+        # kept for any legacy code that reads usd_to_inr_rate
+        "usd_to_inr_rate": currency_info["rate"],
         # Meta
-        "usd_to_inr_rate": usd_rate,
         "gold_price_per_gram": gold_price,
         "snapshot_date": date.today().isoformat(),
     }
@@ -145,6 +163,8 @@ def get_allocation_data(values: dict) -> list[tuple[str, float]]:
     """Return [(label, amount), ...] for pie chart, excluding zero values."""
     items = [
         ("PF", values["total_pf"]),
+        ("PPF", values.get("total_ppf", 0)),
+        ("NPS", values.get("total_nps", 0)),
         ("Fixed Deposits", values["total_fd"]),
         ("Bonds", values["total_bonds"]),
         ("Debt MF", values["total_debt_mf"]),
