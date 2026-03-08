@@ -3,6 +3,7 @@ Networth calculation service.
 Computes current values for all asset types and builds snapshot data.
 """
 
+import math
 from datetime import date
 from app.models import debt as debt_model
 from app.models import mutual_fund as mf_model
@@ -15,6 +16,19 @@ from app.models import networth as nw_model
 from app.core.constants import FUND_CATEGORY_DEBT, FUND_CATEGORY_EQUITY, FUND_CATEGORY_GOLD
 
 
+def _safe_amount(val, default: float = 0.0) -> float:
+    """Return val as a finite non-negative float, or default.
+
+    Guards net-worth calculations against NaN / Inf / negative values
+    that could enter via a hand-edited SQLite database.
+    """
+    try:
+        f = float(val)
+        return f if math.isfinite(f) and f >= 0.0 else default
+    except (TypeError, ValueError):
+        return default
+
+
 def calculate_current_values() -> dict:
     """
     Compute live current values for all asset and liability categories.
@@ -25,29 +39,27 @@ def calculate_current_values() -> dict:
 
     # ── PF ────────────────────────────────────────────────────────────────────
     pf = debt_model.get_pf()
-    total_pf = pf["total_balance"] if pf else 0.0
+    total_pf = _safe_amount(pf["total_balance"]) if pf else 0.0
 
     # ── PPF ───────────────────────────────────────────────────────────────────
     ppf = debt_model.get_ppf()
-    total_ppf = ppf["current_balance"] if ppf else 0.0
+    total_ppf = _safe_amount(ppf["current_balance"]) if ppf else 0.0
 
     # ── NPS ───────────────────────────────────────────────────────────────────
     nps = debt_model.get_nps()
     total_nps = (
-        (nps.get("tier1_corpus", 0.0) + nps.get("tier2_corpus", 0.0)) if nps else 0.0
-    )
+        _safe_amount(nps.get("tier1_corpus", 0.0)) +
+        _safe_amount(nps.get("tier2_corpus", 0.0))
+    ) if nps else 0.0
 
     # ── Fixed Deposits ────────────────────────────────────────────────────────
     fds = debt_model.get_all_fds()
     total_fd = 0.0
     for fd in fds:
         if fd["maturity_amount"]:
-            # Use stored maturity amount if bank provided it
-            # But show current value based on today's accrual
             val = debt_model.calculate_fd_value(
                 fd["principal"], fd["interest_rate"], fd["compounding"], fd["start_date"]
             )
-            # Cap at maturity amount if already past maturity
             mat_date = date.fromisoformat(fd["maturity_date"])
             if date.today() >= mat_date:
                 val = fd["maturity_amount"]
@@ -57,37 +69,46 @@ def calculate_current_values() -> dict:
             val = debt_model.calculate_fd_value(
                 fd["principal"], fd["interest_rate"], fd["compounding"], fd["start_date"]
             )
-        total_fd += val
+        total_fd += _safe_amount(val)
 
     # ── Bonds ─────────────────────────────────────────────────────────────────
     bonds = debt_model.get_all_bonds()
     total_bonds = sum(
-        (b["current_price"] or b["purchase_price"]) * b["units"] for b in bonds
+        _safe_amount(b["current_price"] or b["purchase_price"]) * _safe_amount(b["units"])
+        for b in bonds
     )
 
     # ── Debt MF ───────────────────────────────────────────────────────────────
     debt_mfs = mf_model.get_by_category(FUND_CATEGORY_DEBT)
-    total_debt_mf = sum(f["units"] * f["current_nav"] for f in debt_mfs)
+    total_debt_mf = sum(
+        _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in debt_mfs
+    )
 
     # ── Equity MF ─────────────────────────────────────────────────────────────
     equity_mfs = mf_model.get_by_category(FUND_CATEGORY_EQUITY)
-    total_equity_mf = sum(f["units"] * f["current_nav"] for f in equity_mfs)
+    total_equity_mf = sum(
+        _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in equity_mfs
+    )
 
     # ── Stocks ────────────────────────────────────────────────────────────────
     stocks = equity_model.get_all_stocks()
-    total_stocks = sum(s["quantity"] * s["current_price"] for s in stocks)
+    total_stocks = sum(
+        _safe_amount(s["quantity"]) * _safe_amount(s["current_price"]) for s in stocks
+    )
 
     # ── Gold MF ───────────────────────────────────────────────────────────────
     gold_mfs = mf_model.get_by_category(FUND_CATEGORY_GOLD)
-    total_gold_mf = sum(f["units"] * f["current_nav"] for f in gold_mfs)
+    total_gold_mf = sum(
+        _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in gold_mfs
+    )
 
     # ── SGB ───────────────────────────────────────────────────────────────────
     sgbs = gold_model.get_all_sgb()
-    total_sgb = sum(s["units"] * gold_price for s in sgbs)
+    total_sgb = sum(_safe_amount(s["units"]) * _safe_amount(gold_price) for s in sgbs)
 
     # ── Real Estate ───────────────────────────────────────────────────────────
     properties = re_model.get_all_properties()
-    total_real_estate = sum(p["current_value"] for p in properties)
+    total_real_estate = sum(_safe_amount(p["current_value"]) for p in properties)
 
     # ── Category aggregates ───────────────────────────────────────────────────
     total_debt_assets = total_pf + total_ppf + total_nps + total_fd + total_bonds + total_debt_mf

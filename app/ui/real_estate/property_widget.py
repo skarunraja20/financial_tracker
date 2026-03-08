@@ -72,6 +72,7 @@ class PropertyDialog(QDialog):
 
         self.name = QLineEdit(data["property_name"] if data else "")
         self.name.setPlaceholderText("e.g. Flat - Whitefield, Bengaluru")
+        self.name.setMaxLength(150)
         form.addRow("Property Name*:", self.name)
 
         self.prop_type = make_combo(PROPERTY_TYPES, PROPERTY_TYPE_LABELS)
@@ -82,6 +83,7 @@ class PropertyDialog(QDialog):
 
         self.location = QLineEdit(data.get("location", "") if data else "")
         self.location.setPlaceholderText("City / Area")
+        self.location.setMaxLength(150)
         form.addRow("Location:", self.location)
 
         self.purchase_price = make_amount_spin()

@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from app.models import equity as equity_model
+from app.core.security import encrypt_field, safe_decrypt_field
+from app.core.session import session
 from app.ui.base_asset_widget import BaseAssetWidget
 from app.ui.widgets import (
     make_amount_spin, make_date_edit, make_combo,
@@ -95,10 +97,12 @@ class StockDialog(QDialog):
 
         self.company = QLineEdit(data["company_name"] if data else "")
         self.company.setPlaceholderText("e.g. Reliance Industries")
+        self.company.setMaxLength(150)
         form.addRow("Company Name*:", self.company)
 
         self.ticker = QLineEdit(data["ticker_symbol"] if data else "")
         self.ticker.setPlaceholderText("e.g. RELIANCE")
+        self.ticker.setMaxLength(20)
         form.addRow("Ticker Symbol*:", self.ticker)
 
         self.exchange = make_combo(EXCHANGE_OPTIONS)
@@ -131,8 +135,10 @@ class StockDialog(QDialog):
             if d.isValid(): self.purchase_date.setDate(d)
         form.addRow("Purchase Date*:", self.purchase_date)
 
-        self.demat = QLineEdit(data.get("demat_account", "") if data else "")
+        raw_demat = data.get("demat_account", "") if data else ""
+        self.demat = QLineEdit(safe_decrypt_field(raw_demat, session.aes_key))
         self.demat.setPlaceholderText("Optional broker/demat reference")
+        self.demat.setMaxLength(50)
         form.addRow("Demat Account:", self.demat)
 
         self.notes = QTextEdit(data.get("notes", "") if data else "")
@@ -168,6 +174,6 @@ class StockDialog(QDialog):
             "purchase_value": self.invested.value(),
             "current_price": self.current_price.value(),
             "purchase_date": self.purchase_date.date().toString("yyyy-MM-dd"),
-            "demat_account": self.demat.text().strip(),
+            "demat_account": encrypt_field(self.demat.text().strip(), session.aes_key) if session.aes_key else self.demat.text().strip(),
             "notes": self.notes.toPlainText().strip(),
         }

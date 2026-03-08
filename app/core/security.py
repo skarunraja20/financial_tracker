@@ -7,6 +7,7 @@ import os
 import base64
 import bcrypt
 
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -89,16 +90,48 @@ def encrypt_field(plaintext: str, key: bytes) -> str:
 def decrypt_field(encrypted_b64: str, key: bytes) -> str:
     """
     Decrypt a field encrypted with encrypt_field.
-    Returns the original plaintext, or empty string on failure.
+    Returns the original plaintext, or "[encrypted]" on failure.
+
+    Security: only specific, expected exceptions are caught.
+    - InvalidTag  → GCM authentication failed (wrong key or data tampering).
+    - ValueError  → malformed base64 or encoding issues.
+    Unexpected exceptions are intentionally re-raised so they are not silently lost.
     """
     if not encrypted_b64:
         return ""
     try:
         combined = base64.b64decode(encrypted_b64.encode("utf-8"))
-        nonce = combined[:12]
-        ciphertext = combined[12:]
-        aesgcm = AESGCM(key)
-        plaintext = aesgcm.decrypt(nonce, ciphertext, None)
-        return plaintext.decode("utf-8")
-    except Exception:
+    except (ValueError, Exception):
+        # Malformed base64 — treat as unreadable but do not crash
         return "[encrypted]"
+
+    if len(combined) < 28:
+        # Minimum valid payload: 12-byte nonce + 16-byte GCM tag = 28 bytes
+        return "[encrypted]"
+
+    nonce = combined[:12]
+    ciphertext = combined[12:]
+    aesgcm = AESGCM(key)
+    try:
+        plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+    except InvalidTag:
+        # Authentication tag mismatch — wrong key or data was tampered with
+        return "[encrypted]"
+
+    return plaintext.decode("utf-8")
+
+
+def safe_decrypt_field(value: str, key: bytes) -> str:
+    """
+    Decrypt a sensitive field, falling back to the raw value when decryption
+    fails (backward-compatible: handles plaintext values stored before
+    field-level encryption was wired up).
+    """
+    if not value or not key:
+        return value
+    result = decrypt_field(value, key)
+    if result == "[encrypted]":
+        # Could not decrypt — value was likely stored as plaintext before
+        # encryption was enabled.  Return as-is so no data is lost.
+        return value
+    return result

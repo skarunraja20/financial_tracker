@@ -9,6 +9,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from app.models import liabilities as liab_model
+from app.core.security import encrypt_field, safe_decrypt_field
+from app.core.session import session
 from app.models import real_estate as re_model
 from app.models import mutual_fund as mf_model
 from app.ui.base_asset_widget import BaseAssetWidget
@@ -138,10 +140,13 @@ class LiabilityDialog(QDialog):
 
         self.lender = QLineEdit(data["lender_name"] if data else "")
         self.lender.setPlaceholderText("e.g. SBI, HDFC, Bajaj Finance")
+        self.lender.setMaxLength(100)
         form.addRow("Lender Name*:", self.lender)
 
-        self.loan_acct = QLineEdit(data.get("loan_account", "") if data else "")
+        raw_acct = data.get("loan_account", "") if data else ""
+        self.loan_acct = QLineEdit(safe_decrypt_field(raw_acct, session.aes_key))
         self.loan_acct.setPlaceholderText("Optional")
+        self.loan_acct.setMaxLength(50)
         form.addRow("Loan Account:", self.loan_acct)
 
         self.original = make_amount_spin()
@@ -246,7 +251,7 @@ class LiabilityDialog(QDialog):
         d = {
             "loan_type": self.loan_type,
             "lender_name": self.lender.text().strip(),
-            "loan_account": self.loan_acct.text().strip(),
+            "loan_account": encrypt_field(self.loan_acct.text().strip(), session.aes_key) if session.aes_key else self.loan_acct.text().strip(),
             "original_amount": self.original.value(),
             "outstanding_amount": self.outstanding.value(),
             "interest_rate": self.rate.value(),

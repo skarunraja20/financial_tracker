@@ -3,6 +3,7 @@ CSV/Excel import service.
 Validates, parses, and inserts records for each asset type.
 """
 
+import os
 import pandas as pd
 from datetime import date
 from app.models import debt as debt_model
@@ -24,13 +25,35 @@ REQUIRED_COLUMNS = {
 }
 
 
+_MAX_IMPORT_BYTES = 50 * 1024 * 1024  # 50 MB hard cap
+
+
 def read_file(filepath: str) -> pd.DataFrame:
-    """Read a CSV or Excel file into a DataFrame with normalized column names."""
-    if filepath.lower().endswith(".csv"):
-        df = pd.read_excel(filepath, dtype=str) if filepath.lower().endswith(".xlsx") else \
-             pd.read_csv(filepath, dtype=str)
+    """Read a CSV or Excel file into a DataFrame with normalized column names.
+
+    Security hardening applied:
+    - File size capped at 50 MB to prevent memory exhaustion.
+    - Extension validated to .csv / .xlsx / .xls only.
+    - Excel read with explicit engine='openpyxl' (no macro execution).
+    """
+    try:
+        size = os.path.getsize(filepath)
+    except OSError as exc:
+        raise ValueError(f"Cannot access file: {exc}") from exc
+
+    if size > _MAX_IMPORT_BYTES:
+        mb = size // (1024 * 1024)
+        raise ValueError(f"File is too large ({mb} MB). Maximum allowed is 50 MB.")
+
+    lower = filepath.lower()
+    if lower.endswith(".csv"):
+        df = pd.read_csv(filepath, dtype=str)
+    elif lower.endswith((".xlsx", ".xls")):
+        # engine='openpyxl' disables DDE/macro evaluation
+        df = pd.read_excel(filepath, dtype=str, engine="openpyxl")
     else:
-        df = pd.read_excel(filepath, dtype=str)
+        raise ValueError("Unsupported file type. Only .csv and .xlsx files are accepted.")
+
     df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
     df = df.fillna("")
     return df

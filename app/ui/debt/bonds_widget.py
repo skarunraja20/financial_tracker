@@ -70,9 +70,11 @@ class BondDialog(QDialog):
         form = QFormLayout()
 
         self.name = QLineEdit(data["bond_name"] if data else "")
+        self.name.setMaxLength(150)
         form.addRow("Bond Name*:", self.name)
 
         self.issuer = QLineEdit(data["issuer"] if data else "")
+        self.issuer.setMaxLength(100)
         form.addRow("Issuer*:", self.issuer)
 
         self.bond_type = make_combo(BOND_TYPES, BOND_TYPE_LABELS)

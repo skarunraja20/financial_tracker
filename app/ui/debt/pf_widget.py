@@ -8,6 +8,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from app.models import debt as debt_model
+from app.core.security import encrypt_field, safe_decrypt_field
+from app.core.session import session
 from app.ui.widgets import (
     title_label, field_label, section_label, separator,
     make_amount_spin, make_date_edit, info_dialog, error_dialog,
@@ -57,6 +59,7 @@ class PFWidget(QWidget):
 
         self.acct_edit = QLineEdit()
         self.acct_edit.setPlaceholderText("Optional — account number (masked)")
+        self.acct_edit.setMaxLength(50)
         form.addRow("Account Number:", self.acct_edit)
 
         self.notes_edit = QTextEdit()
@@ -80,7 +83,7 @@ class PFWidget(QWidget):
             self.balance_display.setText(f"Current Balance: {format_inr(pf['total_balance'])}")
             self.date_display.setText(f"As of: {format_date(pf['as_of_date'])}")
             self.balance_spin.setValue(pf["total_balance"])
-            self.acct_edit.setText(pf.get("account_number", ""))
+            self.acct_edit.setText(safe_decrypt_field(pf.get("account_number", ""), session.aes_key))
             self.notes_edit.setPlainText(pf.get("notes", ""))
             from PyQt6.QtCore import QDate
             d = QDate.fromString(pf["as_of_date"], "yyyy-MM-dd")
@@ -90,7 +93,7 @@ class PFWidget(QWidget):
     def _save(self):
         balance = self.balance_spin.value()
         as_of = self.date_edit.date().toString("yyyy-MM-dd")
-        acct = self.acct_edit.text().strip()
+        acct = encrypt_field(self.acct_edit.text().strip(), session.aes_key) if session.aes_key else self.acct_edit.text().strip()
         notes = self.notes_edit.toPlainText().strip()
         debt_model.save_pf(balance, as_of, acct, notes)
         self.refresh()

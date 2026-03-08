@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from app.models import debt as debt_model
+from app.core.security import encrypt_field, safe_decrypt_field
+from app.core.session import session
 from app.ui.base_asset_widget import BaseAssetWidget
 from app.ui.widgets import (
     make_amount_spin, make_rate_spin, make_date_edit, make_combo,
@@ -74,10 +76,13 @@ class FDDialog(QDialog):
 
         self.bank = QLineEdit(data["bank_name"] if data else "")
         self.bank.setPlaceholderText("e.g. HDFC Bank")
+        self.bank.setMaxLength(100)
         form.addRow("Bank Name*:", self.bank)
 
-        self.fd_no = QLineEdit(data.get("fd_number", "") if data else "")
+        raw_fd_no = data.get("fd_number", "") if data else ""
+        self.fd_no = QLineEdit(safe_decrypt_field(raw_fd_no, session.aes_key))
         self.fd_no.setPlaceholderText("Optional")
+        self.fd_no.setMaxLength(50)
         form.addRow("FD Number:", self.fd_no)
 
         self.principal = make_amount_spin()
@@ -140,7 +145,7 @@ class FDDialog(QDialog):
         mat_amt = self.maturity_amount.value()
         return {
             "bank_name": self.bank.text().strip(),
-            "fd_number": self.fd_no.text().strip(),
+            "fd_number": encrypt_field(self.fd_no.text().strip(), session.aes_key) if session.aes_key else self.fd_no.text().strip(),
             "principal": self.principal.value(),
             "interest_rate": self.rate.value(),
             "compounding": self.compounding.currentData(),

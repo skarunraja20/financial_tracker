@@ -95,13 +95,16 @@ class MFDialog(QDialog):
 
         self.name = QLineEdit(data["fund_name"] if data else "")
         self.name.setPlaceholderText("e.g. Parag Parikh Flexi Cap Fund")
+        self.name.setMaxLength(200)
         form.addRow("Fund Name*:", self.name)
 
         self.amfi = QLineEdit(data.get("amfi_code", "") if data else "")
         self.amfi.setPlaceholderText("Optional AMFI code")
+        self.amfi.setMaxLength(20)
         form.addRow("AMFI Code:", self.amfi)
 
         self.folio = QLineEdit(data.get("folio_number", "") if data else "")
+        self.folio.setMaxLength(30)
         form.addRow("Folio Number:", self.folio)
 
         self.units = make_amount_spin(prefix="")

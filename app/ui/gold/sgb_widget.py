@@ -95,6 +95,7 @@ class SGBDialog(QDialog):
 
         self.series = QLineEdit(data["series_name"] if data else "")
         self.series.setPlaceholderText("e.g. SGB 2021-22 Series VIII")
+        self.series.setMaxLength(100)
         form.addRow("Series Name*:", self.series)
 
         self.units = make_amount_spin(prefix="")

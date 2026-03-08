@@ -13,8 +13,21 @@ import datetime
 # to crash.log next to the .exe so the user can report it.
 if getattr(sys, "frozen", False):
     _LOG_PATH = os.path.join(os.path.dirname(sys.executable), "crash.log")
+    _LOG_MAX_BYTES = 200 * 1024  # 200 KB — rotate before writing if exceeded
+
+    def _rotate_log_if_needed():
+        """Rotate crash.log → crash.log.old when it exceeds the size cap."""
+        try:
+            if os.path.exists(_LOG_PATH) and os.path.getsize(_LOG_PATH) >= _LOG_MAX_BYTES:
+                old_path = _LOG_PATH + ".old"
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+                os.rename(_LOG_PATH, old_path)
+        except OSError:
+            pass  # If rotation fails, still attempt to write the new entry
 
     def _log_exception(exc_type, exc_value, exc_tb):
+        _rotate_log_if_needed()
         with open(_LOG_PATH, "a", encoding="utf-8") as f:
             f.write(f"\n{'='*60}\n{datetime.datetime.now()}\n")
             traceback.print_exception(exc_type, exc_value, exc_tb, file=f)

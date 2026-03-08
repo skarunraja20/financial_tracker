@@ -40,17 +40,23 @@ class AppSession:
     # ── Auth ──────────────────────────────────────────────────────────────────
     def login(self, aes_key: bytes) -> None:
         self.is_authenticated = True
-        self.aes_key = aes_key
+        # Store as mutable bytearray so we can zero it in-place on logout.
+        # bytearray is accepted by AESGCM and all cryptography APIs.
+        self.aes_key = bytearray(aes_key)
         self._login_attempts = 0
         self._locked_until = None
 
     def logout(self) -> None:
         self.is_authenticated = False
         if self.aes_key:
-            # Zero out the key bytes before releasing
-            key_len = len(self.aes_key)
-            self.aes_key = bytes(key_len)
+            # Zero the mutable bytearray in-place before dereferencing.
+            # This minimises the window during which the raw key material
+            # could be recovered from a memory dump.
+            for i in range(len(self.aes_key)):
+                self.aes_key[i] = 0
         self.aes_key = None
+        self._login_attempts = 0
+        self._locked_until = None
 
 
 # Singleton instance shared across the app

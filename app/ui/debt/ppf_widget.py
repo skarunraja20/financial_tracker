@@ -9,6 +9,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from app.models import debt as debt_model
+from app.core.security import encrypt_field, safe_decrypt_field
+from app.core.session import session
 from app.ui.widgets import (
     title_label, section_label, separator,
     make_amount_spin, make_date_edit, info_dialog, error_dialog,
@@ -95,11 +97,13 @@ class PPFWidget(QWidget):
         self.acct_edit = QLineEdit()
         self.acct_edit.setPlaceholderText("e.g. 0012345678 (optional)")
         self.acct_edit.setMinimumHeight(_INPUT_H)
+        self.acct_edit.setMaxLength(50)
         form.addRow("Account Number:", self.acct_edit)
 
         self.bank_edit = QLineEdit()
         self.bank_edit.setPlaceholderText("e.g. SBI, Post Office, HDFC")
         self.bank_edit.setMinimumHeight(_INPUT_H)
+        self.bank_edit.setMaxLength(100)
         form.addRow("Bank / Post Office:", self.bank_edit)
 
         self.opening_date_edit = make_date_edit()
@@ -145,7 +149,7 @@ class PPFWidget(QWidget):
             self.balance_spin.setValue(ppf["current_balance"])
             self.annual_spin.setValue(ppf.get("annual_contribution", 0.0))
             self.rate_spin.setValue(ppf.get("interest_rate", 7.1))
-            self.acct_edit.setText(ppf.get("account_number", ""))
+            self.acct_edit.setText(safe_decrypt_field(ppf.get("account_number", ""), session.aes_key))
             self.bank_edit.setText(ppf.get("bank_name", ""))
             self.notes_edit.setPlainText(ppf.get("notes", ""))
 
@@ -166,7 +170,7 @@ class PPFWidget(QWidget):
         debt_model.save_ppf(
             current_balance=balance,
             as_of_date=as_of,
-            account_number=self.acct_edit.text().strip(),
+            account_number=encrypt_field(self.acct_edit.text().strip(), session.aes_key) if session.aes_key else self.acct_edit.text().strip(),
             bank_name=self.bank_edit.text().strip(),
             opening_date=self.opening_date_edit.date().toString("yyyy-MM-dd"),
             maturity_date=self.maturity_date_edit.date().toString("yyyy-MM-dd"),
