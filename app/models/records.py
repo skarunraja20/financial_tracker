@@ -42,6 +42,8 @@ CONTACT_TYPES = {
 # Asset class labels for each asset_type key
 _ASSET_CLASS = {
     "pf":           "Debt - PF",
+    "ppf":          "Debt - PPF",
+    "nps":          "Debt - NPS",
     "fd":           "Debt - Fixed Deposit",
     "bonds":        "Debt - Bond",
     "debt_mf":      "Debt - Mutual Fund",
@@ -71,6 +73,26 @@ def get_all_investment_records() -> list[dict]:
                        'Provident Fund (PF)' AS asset_name,
                        account_number AS acct_hint
                 FROM   pf_account
+                LIMIT  1
+            )
+
+            UNION ALL
+
+            SELECT asset_type, asset_id, asset_name, acct_hint FROM (
+                SELECT 'ppf' AS asset_type, 1 AS asset_id,
+                       'Public Provident Fund (PPF)' AS asset_name,
+                       account_number AS acct_hint
+                FROM   ppf_account
+                LIMIT  1
+            )
+
+            UNION ALL
+
+            SELECT asset_type, asset_id, asset_name, acct_hint FROM (
+                SELECT 'nps' AS asset_type, 1 AS asset_id,
+                       'National Pension System (NPS)' AS asset_name,
+                       pran_number AS acct_hint
+                FROM   nps_account
                 LIMIT  1
             )
 

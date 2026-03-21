@@ -173,6 +173,8 @@ ASSET_COLORS = {
 
 # ── Asset type keys (used for goal tagging) ───────────────────────────────────
 ASSET_TYPE_PF          = "pf"
+ASSET_TYPE_PPF         = "ppf"
+ASSET_TYPE_NPS         = "nps"
 ASSET_TYPE_FD          = "fd"
 ASSET_TYPE_BONDS       = "bonds"
 ASSET_TYPE_DEBT_MF     = "debt_mf"
@@ -184,6 +186,8 @@ ASSET_TYPE_REAL_ESTATE = "real_estate"
 
 ASSET_TYPE_LABELS = {
     ASSET_TYPE_PF:          "Provident Fund (PF)",
+    ASSET_TYPE_PPF:         "Public Provident Fund (PPF)",
+    ASSET_TYPE_NPS:         "National Pension System (NPS)",
     ASSET_TYPE_FD:          "Fixed Deposits",
     ASSET_TYPE_BONDS:       "Bonds",
     ASSET_TYPE_DEBT_MF:     "Debt Mutual Funds",

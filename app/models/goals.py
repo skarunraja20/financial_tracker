@@ -6,7 +6,8 @@ Also provides current-value calculation for any tagged asset.
 from datetime import datetime
 from app.core.database import get_connection
 from app.core.constants import (
-    ASSET_TYPE_PF, ASSET_TYPE_FD, ASSET_TYPE_BONDS, ASSET_TYPE_DEBT_MF,
+    ASSET_TYPE_PF, ASSET_TYPE_PPF, ASSET_TYPE_NPS,
+    ASSET_TYPE_FD, ASSET_TYPE_BONDS, ASSET_TYPE_DEBT_MF,
     ASSET_TYPE_EQUITY_MF, ASSET_TYPE_STOCKS, ASSET_TYPE_GOLD_MF,
     ASSET_TYPE_SGB, ASSET_TYPE_REAL_ESTATE,
     SETTING_GOLD_PRICE,
@@ -191,6 +192,21 @@ def get_asset_current_value(asset_type: str, asset_id: int) -> float:
             ).fetchone()
             return float(row["total_balance"]) if row else 0.0
 
+        elif asset_type == ASSET_TYPE_PPF:
+            row = conn.execute(
+                "SELECT current_balance FROM ppf_account WHERE id=?", (asset_id,)
+            ).fetchone()
+            return float(row["current_balance"]) if row else 0.0
+
+        elif asset_type == ASSET_TYPE_NPS:
+            row = conn.execute(
+                "SELECT tier1_corpus, tier2_corpus FROM nps_account WHERE id=?",
+                (asset_id,)
+            ).fetchone()
+            if not row:
+                return 0.0
+            return float(row["tier1_corpus"]) + float(row["tier2_corpus"])
+
         elif asset_type == ASSET_TYPE_FD:
             row = conn.execute(
                 """SELECT principal, interest_rate, compounding,
@@ -272,7 +288,7 @@ def _compute_fd_value(row: dict) -> float:
 
 # ── Asset class groupings ─────────────────────────────────────────────────────
 
-_DEBT_TYPES = {ASSET_TYPE_PF, ASSET_TYPE_FD, ASSET_TYPE_BONDS, ASSET_TYPE_DEBT_MF}
+_DEBT_TYPES = {ASSET_TYPE_PF, ASSET_TYPE_PPF, ASSET_TYPE_NPS, ASSET_TYPE_FD, ASSET_TYPE_BONDS, ASSET_TYPE_DEBT_MF}
 _EQUITY_TYPES = {ASSET_TYPE_EQUITY_MF, ASSET_TYPE_STOCKS}
 _GOLD_TYPES = {ASSET_TYPE_GOLD_MF, ASSET_TYPE_SGB}
 _REAL_ESTATE_TYPES = {ASSET_TYPE_REAL_ESTATE}
@@ -359,6 +375,31 @@ def get_all_assets_for_tagging(goal_id: int) -> dict[str, list[dict]]:
                 "id": pf["id"], "name": "Provident Fund (PF)",
                 "current_value": float(pf["total_balance"]),
                 "is_tagged": (ASSET_TYPE_PF, pf["id"]) in tagged_set,
+            }]
+
+        # PPF (single row, id=1)
+        ppf = conn.execute(
+            "SELECT id, bank_name, current_balance FROM ppf_account"
+        ).fetchone()
+        if ppf:
+            ppf_name = f"PPF — {ppf['bank_name']}" if ppf["bank_name"] else "PPF Account"
+            result[ASSET_TYPE_PPF] = [{
+                "id": ppf["id"], "name": ppf_name,
+                "current_value": float(ppf["current_balance"]),
+                "is_tagged": (ASSET_TYPE_PPF, ppf["id"]) in tagged_set,
+            }]
+
+        # NPS (single row, id=1)
+        nps = conn.execute(
+            "SELECT id, pfm_name, tier1_corpus, tier2_corpus FROM nps_account"
+        ).fetchone()
+        if nps:
+            nps_name = f"NPS — {nps['pfm_name']}" if nps["pfm_name"] else "NPS Account"
+            total_corpus = float(nps["tier1_corpus"]) + float(nps["tier2_corpus"])
+            result[ASSET_TYPE_NPS] = [{
+                "id": nps["id"], "name": nps_name,
+                "current_value": total_corpus,
+                "is_tagged": (ASSET_TYPE_NPS, nps["id"]) in tagged_set,
             }]
 
         # FD
