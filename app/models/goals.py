@@ -270,6 +270,36 @@ def _compute_fd_value(row: dict) -> float:
         return float(row.get("principal", 0))
 
 
+# ── Asset class groupings ─────────────────────────────────────────────────────
+
+_DEBT_TYPES = {ASSET_TYPE_PF, ASSET_TYPE_FD, ASSET_TYPE_BONDS, ASSET_TYPE_DEBT_MF}
+_EQUITY_TYPES = {ASSET_TYPE_EQUITY_MF, ASSET_TYPE_STOCKS}
+_GOLD_TYPES = {ASSET_TYPE_GOLD_MF, ASSET_TYPE_SGB}
+_REAL_ESTATE_TYPES = {ASSET_TYPE_REAL_ESTATE}
+
+
+def get_goal_allocation(goal_id: int) -> dict:
+    """
+    Returns asset-class allocation for all tagged assets of a goal.
+    Result keys: debt, equity, gold, real_estate, total (all floats).
+    """
+    tagged = get_tagged_assets(goal_id)
+    buckets = {"debt": 0.0, "equity": 0.0, "gold": 0.0, "real_estate": 0.0}
+    for t in tagged:
+        val = get_asset_current_value(t["asset_type"], t["asset_id"])
+        at = t["asset_type"]
+        if at in _DEBT_TYPES:
+            buckets["debt"] += val
+        elif at in _EQUITY_TYPES:
+            buckets["equity"] += val
+        elif at in _GOLD_TYPES:
+            buckets["gold"] += val
+        elif at in _REAL_ESTATE_TYPES:
+            buckets["real_estate"] += val
+    buckets["total"] = sum(buckets[k] for k in ("debt", "equity", "gold", "real_estate"))
+    return buckets
+
+
 # ── Goal progress calculation ─────────────────────────────────────────────────
 
 def calculate_goal_progress(goal_id: int) -> tuple[float, float]:
@@ -297,7 +327,9 @@ def get_all_goals_with_progress() -> list[dict]:
         current, target = calculate_goal_progress(g["id"])
         g["current_amount"] = current
         g["percentage"] = min(current / target * 100, 100) if target > 0 else 0.0
-        g["tagged_count"] = len(get_tagged_assets(g["id"]))
+        tagged = get_tagged_assets(g["id"])
+        g["tagged_count"] = len(tagged)
+        g["allocation"] = get_goal_allocation(g["id"])
     return goals
 
 

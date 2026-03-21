@@ -47,7 +47,10 @@
       "Bash(venvScriptspython.exe -c \":*)",
       "Bash(\"venv/Scripts/python.exe\" -c \"import py_compile, sys; files=[''app/core/database.py'',''app/core/constants.py'',''app/models/debt.py'',''app/models/networth.py'',''app/services/networth_service.py'',''app/ui/debt/ppf_widget.py'',''app/ui/debt/nps_widget.py'',''app/ui/main_window.py'']; ok=True; [print\\(f''  OK  {f}''\\) or True if not \\(lambda e: \\(print\\(f''  FAIL {f}: {e}''\\), False\\)\\)\\(None\\) else False for f in files]; [py_compile.compile\\(f, doraise=True\\) and print\\(f''OK {f}''\\) for f in files]\")",
       "Bash(\"venv/Scripts/python.exe\" -m py_compile app/ui/debt/nps_widget.py)",
-      "Bash(\"venv/Scripts/python.exe\" -m py_compile app/ui/debt/ppf_widget.py)"
+      "Bash(\"venv/Scripts/python.exe\" -m py_compile app/ui/debt/ppf_widget.py)",
+      "Bash(venv/Scripts/python.exe -c \"from app.ui.goals.goals_widget import GoalsWidget, AllocationBar; from app.models.goals import get_goal_allocation; print\\(''OK''\\)\")",
+      "Bash(venv/Scripts/python.exe -c \"from app.ui.goals.goals_widget import GoalsWidget, TagAssetsDialog, AllocationBar; print\\(''OK''\\)\")",
+      "Bash(venv/Scripts/python.exe -c \"from app.ui.goals.goals_widget import GoalsWidget, AllocationBar; print\\(''OK''\\)\")"
     ]
   }
 }

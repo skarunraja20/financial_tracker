@@ -7,10 +7,10 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFrame, QGridLayout, QDialog, QLineEdit,
     QDoubleSpinBox, QComboBox, QCheckBox, QDialogButtonBox,
     QDateEdit, QTextEdit, QTreeWidget, QTreeWidgetItem,
-    QSizePolicy, QMessageBox, QGroupBox,
+    QSizePolicy, QMessageBox,
 )
 from PyQt6.QtCore import Qt, QDate
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QPainter, QColor
 
 from app.ui.widgets import (
     title_label, separator, field_label, confirm_delete,
@@ -21,6 +21,68 @@ from app.services.formatters import format_inr
 from app.core.constants import (
     GOAL_COLORS, GOAL_ICONS, ASSET_TYPE_LABELS,
 )
+
+
+# ── Asset allocation bar ──────────────────────────────────────────────────────
+
+class AllocationBar(QWidget):
+    """Horizontal stacked bar showing debt/equity/gold/real-estate breakdown."""
+
+    _SEGMENTS = [
+        ("debt",        "#3b82f6", "Debt"),
+        ("equity",      "#10b981", "Equity"),
+        ("gold",        "#f59e0b", "Gold"),
+        ("real_estate", "#f97316", "Real Estate"),
+    ]
+
+    def __init__(self, allocation: dict, parent=None):
+        super().__init__(parent)
+        self._alloc = allocation
+        self.setFixedHeight(8)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        total = self._alloc.get("total", 0.0)
+        w, h = self.width(), self.height()
+        radius = h // 2
+
+        if total <= 0:
+            painter.setBrush(QColor("#334155"))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRoundedRect(0, 0, w, h, radius, radius)
+            return
+
+        # Calculate segment widths
+        segs = []
+        for key, color, _ in self._SEGMENTS:
+            val = self._alloc.get(key, 0.0)
+            if val > 0:
+                segs.append((int(val / total * w), QColor(color)))
+
+        # Distribute any rounding remainder to the last segment
+        total_assigned = sum(s[0] for s in segs)
+        if segs and total_assigned < w:
+            segs[-1] = (segs[-1][0] + (w - total_assigned), segs[-1][1])
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        x = 0
+        for i, (seg_w, color) in enumerate(segs):
+            painter.setBrush(color)
+            if len(segs) == 1:
+                painter.drawRoundedRect(x, 0, seg_w, h, radius, radius)
+            elif i == 0:
+                # Left-rounded only
+                painter.drawRoundedRect(x, 0, seg_w, h, radius, radius)
+                painter.drawRect(x + radius, 0, seg_w - radius, h)
+            elif i == len(segs) - 1:
+                # Right-rounded only
+                painter.drawRoundedRect(x, 0, seg_w, h, radius, radius)
+                painter.drawRect(x, 0, seg_w - radius, h)
+            else:
+                painter.drawRect(x, 0, seg_w, h)
+            x += seg_w
 
 
 # ── Goals widget (main page) ───────────────────────────────────────────────────
@@ -63,8 +125,10 @@ class GoalsWidget(QWidget):
         # ── Summary bar ───────────────────────────────────────────────────────
         self._summary_frame = QFrame()
         self._summary_frame.setObjectName("chartFrame")
+        self._summary_frame.setMinimumHeight(90)
         self._summary_layout = QHBoxLayout(self._summary_frame)
-        self._summary_layout.setContentsMargins(16, 12, 16, 12)
+        self._summary_layout.setContentsMargins(28, 18, 28, 18)
+        self._summary_layout.setSpacing(0)
         self._main.addWidget(self._summary_frame)
 
         # ── Goals grid ────────────────────────────────────────────────────────
@@ -107,20 +171,25 @@ class GoalsWidget(QWidget):
             ("OVERALL PROGRESS", f"{overall_pct:.1f}%",
              "#10b981" if overall_pct >= 50 else "#f59e0b"),
         ]:
-            cell = QVBoxLayout()
+            cell_widget = QWidget()
+            cell_widget.setMinimumWidth(160)
+            cell_widget.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
+            cell = QVBoxLayout(cell_widget)
+            cell.setSpacing(4)
+            cell.setContentsMargins(0, 0, 0, 0)
             l = QLabel(label)
-            l.setObjectName("kpiTitle")
+            l.setStyleSheet(
+                "color: #94a3b8; font-size: 8pt; letter-spacing: 1px; background: transparent;"
+            )
             v = QLabel(value)
-            v.setFont(QFont("Consolas", 14, QFont.Weight.Bold))
-            v.setStyleSheet(f"color: {color};")
+            v.setFont(QFont("Consolas", 16, QFont.Weight.Bold))
+            v.setStyleSheet(f"color: {color}; background: transparent;")
+            v.setWordWrap(False)
             cell.addWidget(l)
             cell.addWidget(v)
-            self._summary_layout.addLayout(cell)
-            self._summary_layout.addWidget(self._make_vline())
-        # Remove last vline
-        last = self._summary_layout.itemAt(self._summary_layout.count() - 1)
-        if last and last.widget():
-            last.widget().deleteLater()
+            self._summary_layout.addWidget(cell_widget)
 
         if not goals:
             empty = QLabel("No goals yet. Click '+ New Goal' to create your first financial goal.")
@@ -135,17 +204,10 @@ class GoalsWidget(QWidget):
             card = self._build_goal_card(goal)
             self._grid.addWidget(card, idx // col_count, idx % col_count)
 
-    def _make_vline(self) -> QFrame:
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.VLine)
-        line.setFixedWidth(1)
-        line.setStyleSheet("background-color: #334155;")
-        return line
-
     def _build_goal_card(self, goal: dict) -> QFrame:
         card = QFrame()
         card.setObjectName("goalCard")
-        card.setMinimumHeight(210)
+        card.setMinimumHeight(300)
 
         layout = QVBoxLayout(card)
         layout.setContentsMargins(20, 18, 20, 18)
@@ -202,7 +264,7 @@ class GoalsWidget(QWidget):
 
         amt_row = QHBoxLayout()
         cur_lbl = QLabel(format_inr(current))
-        cur_lbl.setFont(QFont("Consolas", 13, QFont.Weight.Bold))
+        cur_lbl.setFont(QFont("Consolas", 15, QFont.Weight.Bold))
         cur_lbl.setStyleSheet(f"color: {color};")
 
         of_lbl = QLabel(f" of {format_inr(target)}")
@@ -213,7 +275,7 @@ class GoalsWidget(QWidget):
         amt_row.addStretch()
 
         pct_lbl = QLabel(f"{pct:.1f}%")
-        pct_lbl.setFont(QFont("Consolas", 13, QFont.Weight.Bold))
+        pct_lbl.setFont(QFont("Consolas", 15, QFont.Weight.Bold))
         pct_lbl.setStyleSheet(
             f"color: {'#10b981' if pct >= 100 else color};"
         )
@@ -239,6 +301,42 @@ class GoalsWidget(QWidget):
         track._pct = fill_pct
         track.resizeEvent = lambda e, t=track: self._resize_fill(e, t)
         layout.addWidget(track)
+
+        # ── Asset allocation bar ──────────────────────────────────────────────
+        alloc = goal.get("allocation", {})
+        alloc_total = alloc.get("total", 0.0)
+
+        alloc_title = QLabel("Asset Allocation")
+        alloc_title.setStyleSheet(
+            "color: #64748b; font-size: 9.5pt; letter-spacing: 1px; background: transparent;"
+        )
+        layout.addWidget(alloc_title)
+
+        alloc_bar = AllocationBar(alloc)
+        layout.addWidget(alloc_bar)
+
+        # Legend row
+        legend = QHBoxLayout()
+        legend.setSpacing(10)
+        if alloc_total > 0:
+            for key, seg_color, label in AllocationBar._SEGMENTS:
+                val = alloc.get(key, 0.0)
+                if val <= 0:
+                    continue
+                pct = val / alloc_total * 100
+                dot = QLabel("●")
+                dot.setStyleSheet(f"color: {seg_color}; font-size: 12px; background: transparent;")
+                dot.setFixedWidth(14)
+                txt = QLabel(f"{label} {pct:.0f}%")
+                txt.setStyleSheet("color: #64748b; font-size: 10.5pt; background: transparent;")
+                legend.addWidget(dot)
+                legend.addWidget(txt)
+        else:
+            none_lbl = QLabel("No assets tagged yet")
+            none_lbl.setStyleSheet("color: #64748b; font-size: 10.5pt; background: transparent;")
+            legend.addWidget(none_lbl)
+        legend.addStretch()
+        layout.addLayout(legend)
 
         # ── Asset count + Tag button ──────────────────────────────────────────
         bot = QHBoxLayout()
@@ -441,14 +539,15 @@ class TagAssetsDialog(QDialog):
         super().__init__(parent)
         self._goal = goal
         self.setWindowTitle(f"Tag Assets — {goal['name']}")
-        self.setMinimumSize(560, 520)
+        self.setMinimumSize(580, 660)
+        self.resize(600, 700)
         self._checkboxes: list[tuple[str, int, QCheckBox]] = []  # (asset_type, asset_id, cb)
         self._build_ui()
         self._load_assets()
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
+        layout.setSpacing(10)
         layout.setContentsMargins(20, 16, 20, 16)
 
         hdr = QHBoxLayout()
@@ -469,16 +568,17 @@ class TagAssetsDialog(QDialog):
         layout.addWidget(sub)
         layout.addWidget(separator())
 
-        # Scroll area for asset groups
+        # Scroll area for asset groups — expands to fill dialog
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setMinimumHeight(320)
+        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._asset_container = QWidget()
         self._asset_layout = QVBoxLayout(self._asset_container)
-        self._asset_layout.setSpacing(8)
-        self._asset_layout.setContentsMargins(4, 4, 4, 4)
+        self._asset_layout.setSpacing(10)
+        self._asset_layout.setContentsMargins(6, 6, 6, 6)
         scroll.setWidget(self._asset_container)
-        layout.addWidget(scroll)
+        layout.addWidget(scroll, stretch=1)
 
         layout.addWidget(separator())
 
@@ -505,19 +605,24 @@ class TagAssetsDialog(QDialog):
             if not items:
                 continue
 
-            label = ASSET_TYPE_LABELS.get(asset_type, asset_type)
-            group = QGroupBox(label)
-            grp_layout = QVBoxLayout(group)
-            grp_layout.setSpacing(4)
+            # Section title label (no QGroupBox — avoids floating-title overlap)
+            label_text = ASSET_TYPE_LABELS.get(asset_type, asset_type)
+            sec_lbl = QLabel(label_text)
+            sec_lbl.setObjectName("settingsCardTitle")
+            self._asset_layout.addWidget(sec_lbl)
 
-            total_tagged = 0
+            # Card frame for checkboxes
+            group = QFrame()
+            group.setObjectName("settingsCard")
+            grp_layout = QVBoxLayout(group)
+            grp_layout.setSpacing(6)
+            grp_layout.setContentsMargins(14, 10, 14, 10)
+
             for item in items:
                 cb = QCheckBox(
                     f"{item['name']}  ({format_inr(item['current_value'])})"
                 )
                 cb.setChecked(item["is_tagged"])
-                if item["is_tagged"]:
-                    total_tagged += 1
                 grp_layout.addWidget(cb)
                 self._checkboxes.append((asset_type, item["id"], cb))
 
