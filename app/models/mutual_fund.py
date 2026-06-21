@@ -46,12 +46,13 @@ def add(data: dict) -> int:
     try:
         cur = conn.execute(
             "INSERT INTO mutual_funds (fund_name, amfi_code, fund_category, units, avg_nav, "
-            "purchase_value, current_nav, purchase_date, folio_number, is_active, notes, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)",
+            "purchase_value, current_nav, current_value, purchase_date, folio_number, is_active, notes, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)",
             (
                 data["fund_name"], data.get("amfi_code", ""), data["fund_category"],
-                data["units"], data["avg_nav"], data["purchase_value"],
-                data["current_nav"], data["purchase_date"],
+                data.get("units", 0), data.get("avg_nav", 0), data.get("purchase_value", 0),
+                data.get("current_nav", 0), data.get("current_value"),
+                data.get("purchase_date", ""),
                 data.get("folio_number", ""), data.get("notes", ""), now, now,
             ),
         )
@@ -67,12 +68,13 @@ def update(fund_id: int, data: dict) -> None:
     try:
         conn.execute(
             "UPDATE mutual_funds SET fund_name=?, amfi_code=?, fund_category=?, units=?, avg_nav=?, "
-            "purchase_value=?, current_nav=?, purchase_date=?, folio_number=?, is_active=?, notes=?, updated_at=? "
+            "purchase_value=?, current_nav=?, current_value=?, purchase_date=?, folio_number=?, is_active=?, notes=?, updated_at=? "
             "WHERE id=?",
             (
                 data["fund_name"], data.get("amfi_code", ""), data["fund_category"],
-                data["units"], data["avg_nav"], data["purchase_value"],
-                data["current_nav"], data["purchase_date"],
+                data.get("units", 0), data.get("avg_nav", 0), data.get("purchase_value", 0),
+                data.get("current_nav", 0), data.get("current_value"),
+                data.get("purchase_date", ""),
                 data.get("folio_number", ""), data.get("is_active", 1),
                 data.get("notes", ""), now, fund_id,
             ),

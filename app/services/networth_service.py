@@ -81,13 +81,13 @@ def calculate_current_values() -> dict:
     # ── Debt MF ───────────────────────────────────────────────────────────────
     debt_mfs = mf_model.get_by_category(FUND_CATEGORY_DEBT)
     total_debt_mf = sum(
-        _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in debt_mfs
+        _safe_amount(f.get("current_value")) if f.get("current_value") else _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in debt_mfs
     )
 
     # ── Equity MF ─────────────────────────────────────────────────────────────
     equity_mfs = mf_model.get_by_category(FUND_CATEGORY_EQUITY)
     total_equity_mf = sum(
-        _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in equity_mfs
+        _safe_amount(f.get("current_value")) if f.get("current_value") else _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in equity_mfs
     )
 
     # ── Stocks ────────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ def calculate_current_values() -> dict:
     # ── Gold MF ───────────────────────────────────────────────────────────────
     gold_mfs = mf_model.get_by_category(FUND_CATEGORY_GOLD)
     total_gold_mf = sum(
-        _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in gold_mfs
+        _safe_amount(f.get("current_value")) if f.get("current_value") else _safe_amount(f["units"]) * _safe_amount(f["current_nav"]) for f in gold_mfs
     )
 
     # ── SGB ───────────────────────────────────────────────────────────────────

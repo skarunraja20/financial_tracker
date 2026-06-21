@@ -41,6 +41,12 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
         except Exception:
             pass  # Column already exists — safe to ignore
 
+    # Add current_value column to mutual_funds (added in v3)
+    try:
+        conn.execute("ALTER TABLE mutual_funds ADD COLUMN current_value REAL")
+    except Exception:
+        pass
+
 
 def is_first_run() -> bool:
     """Return True if no password has been set (first launch)."""
@@ -160,11 +166,12 @@ def _create_tables(conn: sqlite3.Connection) -> None:
         fund_name       TEXT NOT NULL,
         amfi_code       TEXT,
         fund_category   TEXT NOT NULL,
-        units           REAL NOT NULL,
-        avg_nav         REAL NOT NULL,
-        purchase_value  REAL NOT NULL,
-        current_nav     REAL NOT NULL,
-        purchase_date   TEXT NOT NULL,
+        units           REAL NOT NULL DEFAULT 0,
+        avg_nav         REAL NOT NULL DEFAULT 0,
+        purchase_value  REAL NOT NULL DEFAULT 0,
+        current_nav     REAL NOT NULL DEFAULT 0,
+        current_value   REAL,
+        purchase_date   TEXT NOT NULL DEFAULT '',
         folio_number    TEXT,
         is_active       INTEGER NOT NULL DEFAULT 1,
         notes           TEXT,
