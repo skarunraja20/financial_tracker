@@ -234,9 +234,14 @@ def get_asset_current_value(asset_type: str, asset_id: int) -> float:
 
         elif asset_type in (ASSET_TYPE_DEBT_MF, ASSET_TYPE_EQUITY_MF, ASSET_TYPE_GOLD_MF):
             row = conn.execute(
-                "SELECT units, current_nav FROM mutual_funds WHERE id=?", (asset_id,)
+                "SELECT units, current_nav, current_value FROM mutual_funds WHERE id=?",
+                (asset_id,)
             ).fetchone()
-            return float(row["units"]) * float(row["current_nav"]) if row else 0.0
+            if not row:
+                return 0.0
+            if row["current_value"]:
+                return float(row["current_value"])
+            return float(row["units"]) * float(row["current_nav"])
 
         elif asset_type == ASSET_TYPE_STOCKS:
             row = conn.execute(
